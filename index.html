@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Video Player</title>
+</head>
+<body>
+  <h1>YouTube Video Loader</h1>
+  <p>Enter the full YouTube video URL:</p>
+  <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=example" />
+  <button onclick="loadVideo()">Load Video</button>
+  <div id="videoContainer" style="margin-top: 20px;">
+    <!-- Video will be displayed here -->
+  </div>
+
+  <script>
+    function loadVideo() {
+      const urlInput = document.getElementById('youtubeUrl').value;
+      const videoIdMatch = urlInput.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([\w-]+)/) || 
+                           urlInput.match(/(?:https?:\/\/)?youtu\.be\/([\w-]+)/);
+
+      if (videoIdMatch && videoIdMatch[1]) {
+        const videoId = videoIdMatch[1];
+        const iframeHtml = `
+          <iframe width="560" height="315" 
+                  src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
+                  frameborder="0" 
+                  allow="autoplay; encrypted-media" 
+                  allowfullscreen>
+          </iframe>`;
+        document.getElementById('videoContainer').innerHTML = iframeHtml;
+      } else {
+        alert('Please enter a valid YouTube URL.');
+      }
+    }
+  </script>
+</body>
+</html>
