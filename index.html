@@ -2,37 +2,465 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>YouTube Video Player</title>
+  <style>
+    /* Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+      background: #0f0f0f;
+      position: relative;
+      color: #fff;
+    }
+
+    /* Moving blobs background */
+    .blob {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      opacity: 0.2;
+      border-radius: 50%;
+      filter: blur(100px);
+      animation: move 20s infinite alternate ease-in-out;
+      z-index: 0;
+    }
+
+    .blob:nth-child(1) { top: 10%; left: 20%; animation-delay: 0s; }
+    .blob:nth-child(2) { top: 60%; left: 70%; background: linear-gradient(135deg, #ff00cc, #333399); animation-delay: 5s; }
+
+    @keyframes move {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(100px, 100px); }
+    }
+
+    /* Navbar box with gradient border only */
+    header {
+      width: calc(100% - 40px);
+      margin: 20px;
+      padding: 1px 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      border-radius: 15px;
+      overflow: hidden;
+      transition: all 0.6s ease;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      padding: 2px;
+      border-radius: 15px;
+      background: linear-gradient(90deg, #00c6ff, #0072ff, #ff00cc, #00c6ff);
+      background-size: 400% 400%;
+      animation: borderAnimation 8s ease infinite;
+      -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: destination-out;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    @keyframes borderAnimation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .navbar-inner {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05); /* Light frosted background */
+      backdrop-filter: blur(20px);
+      border-radius: 15px;
+      padding: 15px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    /* Hiding extra navbar parts initially */
+    .nav-center, .nav-right {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.5s ease;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+      letter-spacing: 2px;
+      transition: all 0.5s ease;
+    }
+
+    /* Navbar active */
+    header.active .navbar-inner {
+      justify-content: space-between;
+    }
+
+    header.active .nav-center,
+    header.active .nav-right {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    header.active .logo {
+      font-size: 1.5rem;
+    }
+
+    /* Inputs and buttons */
+    .nav-center input[type="text"] {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 8px;
+      background: #1f1f1f;
+      color: #fff;
+      font-size: 1rem;
+      width: 250px;
+      outline: none;
+      position: relative;
+      transition: border 0.5s ease;
+    }
+
+    .nav-center input[type="text"]:focus {
+      border: 2px solid #00c6ff;
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.6);
+    }
+
+    .nav-center input[type="text"]::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .nav-center .search-logo {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #fff;
+      font-size: 1.2rem;
+    }
+
+    .nav-right button {
+      padding: 10px 18px;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .nav-right button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px rgba(0, 114, 255, 0.4);
+    }
+
+    /* Main section */
+    main {
+      margin-top: 140px;
+      text-align: center;
+      padding: 20px;
+      z-index: 2;
+      position: relative;
+      transition: all 0.6s ease;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-bottom: 20px;
+      color: #bbbbbb;
+    }
+
+    input[type="text"].main-input {
+      width: 80%;
+      max-width: 400px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      background: #1f1f1f;
+      color: #fff;
+    }
+
+    button.main-button {
+      padding: 12px 25px;
+      font-size: 1rem;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button.main-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px rgba(0, 114, 255, 0.3);
+    }
+
+    /* Hide main content nicely */
+    main.hidden {
+      opacity: 0;
+      transform: translateY(-50px);
+      pointer-events: none;
+      transition: all 0.6s ease;
+    }
+
+    /* Video container */
+    #videoContainer {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, 50%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      opacity: 0;
+      transition: all 0.8s ease;
+      pointer-events: none;
+    }
+
+    #videoContainer.active {
+      transform: translate(-50%, -50%);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    iframe {
+      border-radius: 12px;
+      width: 90vw;
+      max-width: 800px;
+      height: 450px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.7);
+      transition: all 0.8s ease;
+    }
+
+    /* Loader styling */
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 50px;	
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-direction: column;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.6s ease;
+    }
+
+    #loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .logo-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .logo-loader {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+
+    .logo-wait {
+      font-size: 0.7rem;
+    }
+
+    .iphone-loader {
+      border: 3px solid #fff;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      position: relative;
+      bottom: 10;
+      animation: rotate 1.5s infinite linear;
+    }
+
+    .iphone-loader::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      background-color: #fff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(0); }
+      50% { transform: translate(-50%, -50%) scale(1); }
+      100% { transform: translate(-50%, -50%) scale(0); }
+    }
+
+    /* Copyright footer */
+    footer {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      color: #bbb;
+    }
+
+  </style>
 </head>
 <body>
-  <h1>YouTube Video Loader</h1>
-  <p>Enter the full YouTube video URL:</p>
-  <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=example" />
-  <button onclick="loadVideo()">Load Video</button>
-  <div id="videoContainer" style="margin-top: 20px;">
-    <!-- Video will be displayed here -->
+  <!-- Loader -->
+  <div id="loader">
+    <div></div>
+    <div class="logo-content">
+      <div class="logo-loader">Zia Ur Rehman</div>
+      <div class="logo-wait">Please wait while site is Loading...</div>
+    </div>
+    <div class="iphone-loader"></div>
   </div>
 
-  <script>
-    function loadVideo() {
-      const urlInput = document.getElementById('youtubeUrl').value;
-      const videoIdMatch = urlInput.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([\w-]+)/) || 
-                           urlInput.match(/(?:https?:\/\/)?youtu\.be\/([\w-]+)/);
+  <!-- Moving blobs -->
+  <div class="blob"></div>
+  <div class="blob"></div>
 
-      if (videoIdMatch && videoIdMatch[1]) {
-        const videoId = videoIdMatch[1];
+  <!-- Navbar -->
+  <header id="navbar">
+    <div class="navbar-inner">
+      <div class="logo">Zia Ur Rehman</div>
+      <div class="nav-center">
+        <div class="search-logo">⌕</div>
+        <input type="text" id="youtubeUrlNavbar" placeholder="YouTube URL">
+      </div>
+      <div class="nav-right">
+        <button id="loadButton" onclick="loadVideoFromNavbar()">Load</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main id="mainContent">
+    <h1>YouTube Video Loader</h1>
+    <p>Enter the full YouTube video URL:</p>
+    <input type="text" id="youtubeUrlMain" class="main-input" placeholder="https://www.youtube.com/watch?v=example" />
+    <br>
+    <button onclick="loadVideoFromMain()" class="main-button">Load Video</button>
+  </main>
+
+  <!-- Video Section -->
+  <div id="videoContainer"></div>
+
+  <!-- Copyright Footer -->
+  <footer>&copy; 2025 Zia Ur Rehman. All Rights Reserved.</footer>
+
+  <script>
+    window.addEventListener('load', function () {
+      const loader = document.getElementById('loader');
+      loader.classList.add('hidden');
+    });
+
+    function extractVideoId(url) {
+      const match = url.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([\w-]+)/) ||
+                    url.match(/(?:https?:\/\/)?youtu\.be\/([\w-]+)/);
+      return match ? match[1] : null;
+    }
+
+    function loadVideo(videoUrl) {
+      const videoId = extractVideoId(videoUrl.trim());
+      if (videoId) {
         const iframeHtml = `
-          <iframe width="560" height="315" 
-                  src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
-                  frameborder="0" 
-                  allow="autoplay; encrypted-media" 
-                  allowfullscreen>
+          <iframe 
+            src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
+            frameborder="0" 
+            allow="autoplay; encrypted-media" 
+            allowfullscreen>
           </iframe>`;
-        document.getElementById('videoContainer').innerHTML = iframeHtml;
+        const videoContainer = document.getElementById('videoContainer');
+        videoContainer.innerHTML = iframeHtml;
+
+        const main = document.getElementById('mainContent');
+        const navbar = document.getElementById('navbar');
+        main.classList.add('hidden');
+        setTimeout(() => {
+          navbar.classList.add('active');
+        }, 500);
+
+        setTimeout(() => {
+          videoContainer.classList.add('active');
+        }, 600);
+
+        document.getElementById('youtubeUrlMain').value = '';
+        document.getElementById('youtubeUrlNavbar').value = '';
+
+        // Change load button text to "Load Again"
+        const loadButton = document.getElementById('loadButton');
+        loadButton.textContent = "Load Again";
+        loadButton.setAttribute('onclick', 'loadVideoFromNavbar()');
       } else {
         alert('Please enter a valid YouTube URL.');
       }
+    }
+
+    function loadVideoFromMain() {
+      const url = document.getElementById('youtubeUrlMain').value;
+      loadVideo(url);
+    }
+
+    function loadVideoFromNavbar() {
+      const url = document.getElementById('youtubeUrlNavbar').value;
+      loadVideo(url);
     }
   </script>
 </body>
